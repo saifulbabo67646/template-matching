@@ -17,6 +17,7 @@ def tm():
     image_req = request.files['image'].read()
     template_req = request.files['template'].read()
     threshold = request.form.get('threshold')
+    method = request.form.get('method')
     if image_req and template_req and threshold:
         print("threshold:", threshold)
         img_bytes = np.frombuffer(image_req, np.uint8)
@@ -26,7 +27,7 @@ def tm():
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
         w, h = template_gray.shape[::-1]
-        res = cv2.matchTemplate(img_gray, template_gray, cv2.TM_CCOEFF_NORMED)
+        res = cv2.matchTemplate(img_gray, template_gray, int(method))
         (y_points, x_points) = np.where(res >= float(threshold))
         boxes = list()
         for (x, y) in zip(x_points, y_points):
