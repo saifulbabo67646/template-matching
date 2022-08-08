@@ -16,7 +16,9 @@ def tm():
     # print('tesaja')
     image_req = request.files['image'].read()
     template_req = request.files['template'].read()
-    if image_req and template_req:
+    threshold = request.form.get('threshold')
+    if image_req and template_req and threshold:
+        print("threshold:", threshold)
         img_bytes = np.frombuffer(image_req, np.uint8)
         template_bytes = np.frombuffer(template_req, np.uint8)
         img = cv2.imdecode(img_bytes, cv2.IMREAD_UNCHANGED)
@@ -25,8 +27,7 @@ def tm():
         template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
         w, h = template_gray.shape[::-1]
         res = cv2.matchTemplate(img_gray, template_gray, cv2.TM_CCOEFF_NORMED)
-        thresh = 0.5
-        (y_points, x_points) = np.where(res >= thresh)
+        (y_points, x_points) = np.where(res >= float(threshold))
         boxes = list()
         for (x, y) in zip(x_points, y_points):
             boxes.append((x, y, x + w, y + h))
