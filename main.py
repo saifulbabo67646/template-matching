@@ -18,8 +18,8 @@ def tm():
     template_req = request.files['template'].read()
     threshold = request.form.get('threshold')
     method = request.form.get('method')
-    if image_req and template_req and threshold:
-        print("threshold:", threshold)
+    tm_type = request.form.get('type')
+    if image_req and template_req and method:
         img_bytes = np.frombuffer(image_req, np.uint8)
         template_bytes = np.frombuffer(template_req, np.uint8)
         img = cv2.imdecode(img_bytes, cv2.IMREAD_UNCHANGED)
@@ -28,27 +28,47 @@ def tm():
         template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
         w, h = template_gray.shape[::-1]
         res = cv2.matchTemplate(img_gray, template_gray, int(method))
-        (y_points, x_points) = np.where(res >= float(threshold))
-        boxes = list()
-        for (x, y) in zip(x_points, y_points):
-            boxes.append((x, y, x + w, y + h))
-        boxes = non_max_suppression(np.array(boxes))
-        c=0
-        for (x1, y1, x2, y2) in boxes:
-            c+=1
-            cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0),2)
-        # return "Detected object: "+str(c)
-        data = cv2.imencode('.png', img)[1].tobytes()
-        # return Response(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + data + b'\r\n\r\n', mimetype='image/png; boundary=frame')
+        if(int(tm_type)):
+            (y_points, x_points) = np.where(res >= float(threshold))
+            boxes = list()
+            for (x, y) in zip(x_points, y_points):
+                boxes.append((x, y, x + w, y + h))
+            boxes = non_max_suppression(np.array(boxes))
+            c=0
+            for (x1, y1, x2, y2) in boxes:
+                c+=1
+                cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0),2)
+            # return "Detected object: "+str(c)
+            data = cv2.imencode('.png', img)[1].tobytes()
+            # return Response(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + data + b'\r\n\r\n', mimetype='image/png; boundary=frame')
 
-        data = base64.b64encode(data).decode()   
+            data = base64.b64encode(data).decode()   
 
-        return jsonify({
-            'msg': 'success', 
-            'format': 'png',
-            'detected': c,
-            'img': data
-        })
+            return jsonify({
+                'msg': 'success', 
+                'format': 'png',
+                'detected': c,
+                'img': data
+            })
+        else:
+            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+            if method=="0" or method=="1":
+                top_left = min_loc
+            else:
+                top_left = max_loc
+            bottom_right = (top_left[0]+w, top_left[1]+h)
+            cv2.rectangle(img, top_left, bottom_right, (255, 0, 0), 3)
+            data = cv2.imencode('.png', img)[1].tobytes()
+            # return Response(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + data + b'\r\n\r\n', mimetype='image/png; boundary=frame')
+
+            data = base64.b64encode(data).decode()   
+
+            return jsonify({
+                'msg': 'success', 
+                'format': 'png',
+                'detected': 1,
+                'img': data
+            })
     return "not ok"
 
 if __name__ == '__main__':
