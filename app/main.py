@@ -3,6 +3,7 @@ from flask_cors import CORS
 import cv2, numpy as np
 from imutils.object_detection import non_max_suppression
 import base64
+from app.solver import PuzzleSolver
 
 app = Flask(__name__)
 CORS(app)
@@ -19,7 +20,16 @@ def tm():
     threshold = request.form.get('threshold')
     method = request.form.get('method')
     tm_type = request.form.get('type')
+    print(tm_type)
+    print(method)
     if image_req and template_req and method:
+        # let me write the puzzleSolver code here
+        # Encode images to base64
+        base64_puzzle = base64.b64encode(image_req).decode("utf-8")
+        base64_piece = base64.b64encode(template_req).decode("utf-8")
+        solver = PuzzleSolver(base64_puzzle, base64_piece)
+        res = solver.get_position()
+        #puzzleSolver end
         img_bytes = np.frombuffer(image_req, np.uint8)
         template_bytes = np.frombuffer(template_req, np.uint8)
         img = cv2.imdecode(img_bytes, cv2.IMREAD_UNCHANGED)
@@ -27,8 +37,9 @@ def tm():
         img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
         w, h = template_gray.shape[::-1]
-        res = cv2.matchTemplate(img_gray, template_gray, int(method))
+        # res = cv2.matchTemplate(img_gray, template_gray, int(method))
         if(int(tm_type)):
+            print("i am calling from if")
             (y_points, x_points) = np.where(res >= float(threshold))
             boxes = list()
             for (x, y) in zip(x_points, y_points):
@@ -51,11 +62,13 @@ def tm():
                 'img': data
             })
         else:
+            print("i am calling from else")
             min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-            if method=="0" or method=="1":
-                top_left = min_loc
-            else:
-                top_left = max_loc
+            # if method=="0" or method=="1":
+            #     top_left = min_loc
+            # else:
+            #     top_left = max_loc
+            top_left = max_loc
             bottom_right = (top_left[0]+w, top_left[1]+h)
             cv2.rectangle(img, top_left, bottom_right, (255, 0, 0), 3)
             data = cv2.imencode('.png', img)[1].tobytes()
